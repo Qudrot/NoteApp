@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:note_app/notelist.dart';
+import 'package:note_app/pages/notelist_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -18,7 +18,7 @@ class MyApp extends StatelessWidget {
       ),
 
       debugShowCheckedModeBanner: false,
-      home: NoteList(),
+      home: NoteListPage(),
     );
   }
 }
