@@ -27,7 +27,7 @@ class Header extends StatelessWidget implements PreferredSizeWidget {
       automaticallyImplyLeading: false,
 
       title: hasLeading? Text(title): Padding(
-              padding: const EdgeInsets.only(left: 16), // Adjust this number (0-12) to taste
+              padding: const EdgeInsets.only(left: 16),
               child: Text(title),
             ),
       titleSpacing: 0,

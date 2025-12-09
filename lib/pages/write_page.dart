@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:note_app/widget/header.dart';
 
 class WritePage extends StatefulWidget {
   const WritePage({super.key});
@@ -14,8 +15,15 @@ class _WritePageState extends State<WritePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      
+      appBar: Header(
+        firstIcon: Icons.arrow_back,
+        title: "Edit note",
+        secondIcon: Icons.check,
+      ),
 
+      body: Column(
+
+      ),
     );
   }
 }

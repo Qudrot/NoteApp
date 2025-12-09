@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:note_app/db.dart';
+import 'package:note_app/pages/write_page.dart';
 import 'package:note_app/widget/header.dart';
 
 class NoteListPage extends StatefulWidget {
@@ -52,7 +53,7 @@ class _NoteListPageState extends State<NoteListPage> {
             ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-         // Navigator.push(context, MaterialPageRoute(builder: ))
+         Navigator.push(context, MaterialPageRoute(builder: (context) => WritePage()));
         },
         foregroundColor: Colors.white,
         backgroundColor: Colors.blue,
