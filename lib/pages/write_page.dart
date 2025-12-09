@@ -1,22 +1,71 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:note_app/model/model.dart';
+import 'package:note_app/widget/custom_textfield.dart';
 import 'package:note_app/widget/header.dart';
 
 class WritePage extends StatefulWidget {
-  const WritePage({super.key});
+  final ListOfNote? existingNote;
+
+  const WritePage({super.key, this.existingNote});
 
   @override
   State<WritePage> createState() => _WritePageState();
 }
 
 class _WritePageState extends State<WritePage> {
-  final TextEditingController _noteTitleController = TextEditingController();
-  final TextEditingController _noteBodyController = TextEditingController();
+  final TextEditingController noteTitleController = TextEditingController();
+  final TextEditingController noteBodyController = TextEditingController();
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.existingNote != null) {
+      noteTitleController.text = widget.existingNote!.name;
+      noteBodyController.text = widget.existingNote!.snippet;
+    }
+  }
 
   @override
   void dispose() {
+    noteTitleController.dispose();
+    noteBodyController.dispose();
     super.dispose();
-    _noteTitleController.dispose();
-    _noteBodyController.dispose();
+  }
+
+  Future<void> _handleSave() async {
+    final title = noteTitleController.text.trim();
+    final body = noteBodyController.text.trim();
+
+    if (title.isEmpty && body.isEmpty) return;
+
+    setState(() => _isLoading = true);
+
+    final collection = FirebaseFirestore.instance.collection('notes');
+    final data = {
+      'name': title,
+      'snippet': body,
+      'timestamp': DateTime.now().toIso8601String(),
+    };
+
+    try {
+      if (widget.existingNote == null) {
+        await collection.add(data);
+      } else {
+        await collection.doc(widget.existingNote!.id).update(data);
+      }
+
+      if (mounted) {
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error saving: $e")),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -24,57 +73,35 @@ class _WritePageState extends State<WritePage> {
     return Scaffold(
       appBar: Header(
         firstIcon: Icons.arrow_back,
-        title: "Edit note",
-        secondIcon: Icons.check,
+        title: widget.existingNote == null ? "New Note" : "Edit Note",
+        secondIcon: _isLoading ? null : Icons.check,
+        
+        onFirstIconTap: () => Navigator.pop(context),
+        onSecondIconTap: _handleSave,
       ),
-
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            TextField(
-              controller: _noteTitleController,
-              showCursor: true,
-              maxLines: 1,
-              textInputAction: TextInputAction.next,
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              decoration: InputDecoration(
-                contentPadding: const EdgeInsets.all(8),
-                hintText: "Note title",
-                hintStyle: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey,
-                  fontWeight: FontWeight.normal,
-                ),
-                enabledBorder: const UnderlineInputBorder(
-                  borderSide: BorderSide(color: Colors.grey),
-                ),
-                //border: const UnderlineInputBorder(),
-                focusedBorder: const UnderlineInputBorder(
-                  borderSide: BorderSide(color: Colors.blue,),
-                ),
+      body: _isLoading 
+          ? const Center(child: CircularProgressIndicator())
+          : Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  CustomTextField(
+                    label: 'Note title',
+                    textEditingController: noteTitleController,
+                  ),
+                  Expanded(
+                    child: CustomTextField(
+                      label: "Start writing ...",
+                      textEditingController: noteBodyController,
+                      maxLines: null,
+                      showUnderline: false,
+                      fontSize: 16,
+                      fontWeight: FontWeight.normal,
+                    ),
+                  ),
+                ],
               ),
             ),
-
-            //Note body
-            Expanded(
-              child: TextField(
-                controller: _noteBodyController,
-                showCursor: true,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.normal,
-                  color: Colors.black87,
-                ),
-                decoration: InputDecoration(
-                  labelText: "Start writing",
-                  border: InputBorder.none,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

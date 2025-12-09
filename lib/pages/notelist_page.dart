@@ -1,5 +1,6 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:note_app/db.dart';
+import 'package:note_app/model/model.dart';
 import 'package:note_app/pages/write_page.dart';
 import 'package:note_app/widget/header.dart';
 
@@ -11,6 +12,8 @@ class NoteListPage extends StatefulWidget {
 }
 
 class _NoteListPageState extends State<NoteListPage> {
+  final CollectionReference _notesRef = FirebaseFirestore.instance.collection('notes');
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -18,13 +21,28 @@ class _NoteListPageState extends State<NoteListPage> {
         title: "My Notes",
         secondIcon: Icons.search,
         thirdIcon: Icons.menu,
+        onSecondIconTap: () {
+          // Implement search functionality here
+        },
       ),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: _notesRef.orderBy('timestamp', descending: true).snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return const Center(child: Text("Something went wrong"));
+          }
 
-      body: NOTES.isEmpty
-          ? Center(
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          final data = snapshot.requireData;
+
+          if (data.size == 0) {
+            return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: [
+                children: const [
                   Icon(Icons.note_alt_outlined, size: 64, color: Colors.grey),
                   SizedBox(height: 8),
                   Text(
@@ -33,31 +51,54 @@ class _NoteListPageState extends State<NoteListPage> {
                   ),
                 ],
               ),
-            )
-          : ListView.builder(
-              itemCount: NOTES.length,
-              itemBuilder: (context, index) {
-                final note = NOTES[index];
-                return ListTile(
-                  title: Text(
-                    note.name,
-                    style: TextStyle(fontSize: 16, color: Colors.black87),
-                  ),
-                  subtitle: Text(
-                    note.snippet,
-                    style: TextStyle(fontSize: 14, color: Colors.grey),
-                  ),
-                  trailing: Icon(Icons.delete),
-                );
-              },
-            ),
+            );
+          }
+
+          return ListView.builder(
+            itemCount: data.size,
+            itemBuilder: (context, index) {
+              final doc = data.docs[index];
+              final note = ListOfNote.fromJson(doc.data() as Map<String, dynamic>);
+              note.id = doc.id; 
+
+              return ListTile(
+                title: Text(
+                  note.name,
+                  style: const TextStyle(fontSize: 16, color: Colors.black87),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                subtitle: Text(
+                  note.snippet,
+                  style: const TextStyle(fontSize: 14, color: Colors.grey),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(
+                    builder: (context) => WritePage(existingNote: note),
+                  ));
+                },
+                trailing: IconButton(
+                  icon: const Icon(Icons.delete),
+                  onPressed: () {
+                    _notesRef.doc(note.id).delete();
+                  },
+                ),
+              );
+            },
+          );
+        },
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-         Navigator.push(context, MaterialPageRoute(builder: (context) => WritePage()));
+          Navigator.push(context, MaterialPageRoute(
+            builder: (context) => const WritePage(),
+          ));
         },
         foregroundColor: Colors.white,
         backgroundColor: Colors.blue,
-        child: Icon(Icons.add, size: 24),
+        child: const Icon(Icons.add, size: 24),
       ),
     );
   }
